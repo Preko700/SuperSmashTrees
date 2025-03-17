@@ -1,31 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SuperSmashTrees.Core.Models
+﻿namespace SuperSmashTrees.Core.Models
 {
     public class Platform
     {
-        public Position Position { get; set; }
-        public double Width { get; set; }
-        public double Height { get; set; }
+        public float PositionX { get; private set; }
+        public float PositionY { get; private set; }
+        public float Width { get; private set; }
+        public float Height { get; private set; }
 
-        public Platform(double x, double y, double width, double height)
+        public Platform(float posX, float posY, float width, float height)
         {
-            Position = new Position(x, y);
+            PositionX = posX;
+            PositionY = posY;
             Width = width;
             Height = height;
-        }
-
-        public bool Intersects(Player player)
-        {
-            // Colisión simple rectangular (mejorar si es necesario)
-            return player.Position.X + 20 > Position.X &&
-                   player.Position.X - 20 < Position.X + Width &&
-                   player.Position.Y + 30 > Position.Y &&
-                   player.Position.Y - 30 < Position.Y + Height;
         }
     }
 }

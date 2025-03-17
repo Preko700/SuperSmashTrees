@@ -1,9 +1,6 @@
-﻿using SuperSmashTrees.Core.DataStructures;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SuperSmashTrees.Core.DataStructures;
 
 namespace SuperSmashTrees.Core.Models
 {
@@ -11,101 +8,116 @@ namespace SuperSmashTrees.Core.Models
     {
         public int Id { get; private set; }
         public string Name { get; set; }
-        public int Score { get; set; }
-        public Position Position { get; set; }
-        public Velocity Velocity { get; set; }
-        public List<Power> Powers { get; set; }
-        public Dictionary<string, object> Trees { get; set; }
-        public bool IsJumping { get; set; }
+        public float PositionX { get; set; }
+        public float PositionY { get; set; }
+        public int Score { get; private set; }
+        public List<Power> AvailablePowers { get; private set; }
+        public bool IsShielded { get; set; }
+        public bool CanAirJump { get; set; }
         public bool IsFalling { get; set; }
-        public int Health { get; set; }
+
+        // Árboles del jugador (uno para cada tipo)
+        public BinarySearchTree<int> BSTree { get; private set; }
+        public AVLTree<int> AVLTree { get; private set; }
+        public BTree<int> BTree { get; private set; }
+
+        // Referencia al árbol actualmente en uso según el reto
+        public object CurrentTree { get; private set; }
+        public TreeType CurrentTreeType { get; private set; }
 
         public Player(int id, string name)
         {
             Id = id;
             Name = name;
             Score = 0;
-            Position = new Position(100, 100);  // Posición inicial por defecto
-            Velocity = new Velocity(0, 0);
-            Powers = new List<Power>();
-            Trees = new Dictionary<string, object>();
-            IsJumping = false;
+            AvailablePowers = new List<Power>();
+            IsShielded = false;
+            CanAirJump = false;
             IsFalling = false;
-            Health = 100;
+
+            // Inicializar árboles
+            BSTree = new BinarySearchTree<int>();
+            AVLTree = new AVLTree<int>();
+            BTree = new BTree<int>(2); // Grado mínimo de 2
+
+            // Por defecto, empezamos con BST
+            CurrentTree = BSTree;
+            CurrentTreeType = TreeType.BST;
         }
 
-        public void Move(Direction direction, double speed)
+        public void AddScore(int points)
         {
-            switch (direction)
-            {
-                case Direction.Left:
-                    Velocity.X = -speed;
-                    break;
-                case Direction.Right:
-                    Velocity.X = speed;
-                    break;
-            }
+            Score += points;
         }
 
-        public void Jump(double jumpForce)
+        public void AddPower(Power power)
         {
-            if (!IsJumping && !IsFalling)
-            {
-                IsJumping = true;
-                Velocity.Y = -jumpForce;
-            }
+            AvailablePowers.Add(power);
         }
 
-        public void Update(double deltaTime)
+        public Power GetPower(PowerType type)
         {
-            // Aplicar gravedad
-            Velocity.Y += 9.8 * deltaTime;
-
-            // Actualizar posición
-            Position.X += Velocity.X * deltaTime;
-            Position.Y += Velocity.Y * deltaTime;
-
-            // Amortiguamiento horizontal
-            Velocity.X *= 0.9;
+            return AvailablePowers.Find(p => p.Type == type && !p.IsActive);
         }
 
-        public void UsePower(PowerType powerType, GameState gameState)
+        public void RemovePower(Power power)
         {
-            var power = Powers.FirstOrDefault(p => p.Type == powerType);
-            if (power != null)
-            {
-                power.Use(this, gameState);
-                Powers.Remove(power);
-            }
+            AvailablePowers.Remove(power);
         }
 
-        public void AddToken(int token, string treeType)
+        public void SetCurrentTreeType(TreeType treeType)
         {
-            // Agregar el token al árbol correspondiente
+            CurrentTreeType = treeType;
             switch (treeType)
             {
-                case "BST":
-                    if (!Trees.ContainsKey("BST"))
-                    {
-                        Trees["BST"] = new BinarySearchTree<int>();
-                    }
-                    ((BinarySearchTree<int>)Trees["BST"]).Insert(token);
+                case TreeType.BST:
+                    CurrentTree = BSTree;
                     break;
-                case "AVL":
-                    if (!Trees.ContainsKey("AVL"))
-                    {
-                        Trees["AVL"] = new AVLTree<int>();
-                    }
-                    ((AVLTree<int>)Trees["AVL"]).Insert(token);
+                case TreeType.AVL:
+                    CurrentTree = AVLTree;
                     break;
-                case "BTree":
-                    if (!Trees.ContainsKey("BTree"))
-                    {
-                        Trees["BTree"] = new BTree<int>(3); // Grado mínimo 3
-                    }
-                    ((BTree<int>)Trees["BTree"]).Insert(token);
+                case TreeType.BTree:
+                    CurrentTree = BTree;
                     break;
             }
+        }
+
+        public void AddToken(int value)
+        {
+            switch (CurrentTreeType)
+            {
+                case TreeType.BST:
+                    BSTree.Insert(value);
+                    break;
+                case TreeType.AVL:
+                    AVLTree.Insert(value);
+                    break;
+                case TreeType.BTree:
+                    BTree.Insert(value);
+                    break;
+            }
+        }
+
+        public void ApplyForceFrom(float sourceX, float sourceY, float force)
+        {
+            if (IsShielded)
+                return;
+
+            // Vector de dirección desde la fuente al jugador
+            float dirX = PositionX - sourceX;
+            float dirY = PositionY - sourceY;
+
+            // Normalizar
+            float length = (float)Math.Sqrt(dirX * dirX + dirY * dirY);
+            if (length > 0)
+            {
+                dirX /= length;
+                dirY /= length;
+            }
+
+            // Aplicar fuerza
+            PositionX += dirX * force;
+            PositionY += dirY * force;
         }
     }
 }
