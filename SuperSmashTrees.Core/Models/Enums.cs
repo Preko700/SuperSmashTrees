@@ -14,10 +14,4 @@ namespace SuperSmashTrees.Core.Models
         Down
     }
 
-    public enum PowerType
-    {
-        ForcePush,
-        Shield,
-        AirJump
-    }
 }
